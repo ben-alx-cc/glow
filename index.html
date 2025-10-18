@@ -2,8 +2,17 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Chrome Animation</title>
+    
+    <!-- iOS Home Screen Web App -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Chrome">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231a1a1a' width='180' height='180'/><circle fill='%23c0c0c0' cx='90' cy='90' r='60'/></svg>">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
     <style>
         * {
             margin: 0;
@@ -13,14 +22,18 @@
         
         body {
             overflow: hidden;
-            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            background: #000000;
             font-family: 'Arial', sans-serif;
+            /* iOS Safe Area Support (für Notch/Dynamic Island) */
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
         }
         
         canvas {
             display: block;
             width: 100%;
             height: 100vh;
+            height: 100dvh; /* Dynamic Viewport Height für iOS */
+            touch-action: none; /* Verhindert Zoom/Scroll beim Touch */
         }
         
     </style>
@@ -40,10 +53,10 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
-        // Scene Setup
+        // Scene Setup - Pure Black
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x1a1a1a);
-        scene.fog = new THREE.Fog(0x1a1a1a, 10, 50);
+        scene.background = new THREE.Color(0x000000);
+        scene.fog = new THREE.Fog(0x000000, 10, 50);
 
         // Camera
         const camera = new THREE.PerspectiveCamera(
@@ -161,7 +174,7 @@
         
         const particlesMaterial = new THREE.PointsMaterial({
             color: 0xffffff,
-            size: 0.05,
+            size: 0.075,
             transparent: true,
             opacity: 0.6
         });
@@ -171,16 +184,38 @@
 
         // Animation
         let time = 0;
+        let rotationSpeed = 1.0; // Normale Geschwindigkeit
+        let speedBoostTimeout = null;
+        
+        // Click und Touch Handler für Speed Boost
+        function handleInteraction(event) {
+            event.preventDefault();
+            
+            // Speed erhöhen
+            rotationSpeed = 3.0;
+            
+            // Reset nach 2 Sekunden
+            if (speedBoostTimeout) clearTimeout(speedBoostTimeout);
+            speedBoostTimeout = setTimeout(() => {
+                rotationSpeed = 1.0;
+            }, 2000);
+        }
+        
+        // Click Event
+        renderer.domElement.addEventListener('click', handleInteraction);
+        
+        // Touch Events (Mobile)
+        renderer.domElement.addEventListener('touchstart', handleInteraction);
         
         function animate() {
             requestAnimationFrame(animate);
-            time += 0.01;
+            time += 0.01 * rotationSpeed;
             
             // Rotate main object
             torusKnot.rotation.x = time * 0.3;
             torusKnot.rotation.y = time * 0.5;
             
-            // Animate spheres
+            // Animate spheres (auch mit Speed-Boost)
             spheres.forEach((sphere, i) => {
                 const angle = time + (i / 5) * Math.PI * 2;
                 const radius = 3;
